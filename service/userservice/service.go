@@ -24,6 +24,10 @@ type RegisterResponse struct {
 	User entity.User
 }
 
+func New(repo Repository) Service {
+	return Service{repo: repo}
+}
+
 func (s Service) Register(reg RegisterRequest) (RegisterResponse, error) {
 
 	// TODO: verify and sanitize phone number by verification code
