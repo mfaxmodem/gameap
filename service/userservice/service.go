@@ -35,6 +35,7 @@ func (s Service) Register(reg RegisterRequest) (RegisterResponse, error) {
 	if !phonenumber.IsValid(reg.PhoneNumber) {
 		return RegisterResponse{}, fmt.Errorf("Invalid phone number format")
 	}
+
 	//check uniqueness of phone number
 	if isUnique, err := s.repo.IsPhoneNumberUnique(reg.PhoneNumber); err != nil || !isUnique {
 
@@ -44,6 +45,7 @@ func (s Service) Register(reg RegisterRequest) (RegisterResponse, error) {
 		if !isUnique {
 			return RegisterResponse{}, fmt.Errorf("Failed to create user")
 		}
+
 	}
 
 	// validate name format
