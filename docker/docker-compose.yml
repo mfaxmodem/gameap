@@ -1,25 +1,29 @@
-version: '3.7'
+version: '3.9'
+
 services:
-    databases:
-        image: mysql2
-        ports:
-            - "3306:3306"
-        container_name: gameapp-container
-        volumes:
-            - ./db_data:/var/lib/mysql
-            - ./my.cnf:/etc/mysql/conf.d/my.cnf
-        restart: always
-        environment:
-            - MYSQL_DATABASE=${MYSQL_DATABASE}
-            - MYSQL_USER=${MYSQL_USER}
-            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-        networks:
-            - webapi_network
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: gameapp_db
+      MYSQL_USER: gameapp
+      MYSQL_PASSWORD: your_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci"
+    ]
+    networks:
+      - app_network
+
 
 volumes:
-    dbdata:
+  mysql_data:
 
 networks:
-    webapi_network:
-        driver: bridge
+  app_network:
