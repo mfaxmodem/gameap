@@ -5,3 +5,7 @@
 ##User use-case
 ###Register
 
+#CREATE USER 'gameapp'@'%' IDENTIFIED BY 'your_password';
+
+#GRANT ALL PRIVILEGES ON *.* TO 'gameapp'@'%' WITH GRANT OPTION;
+#FLUSH PRIVILEGES;
