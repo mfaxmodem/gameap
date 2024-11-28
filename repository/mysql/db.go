@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -12,7 +14,14 @@ type MySQLDB struct {
 }
 
 func New() *MySQLDB {
-	db, err := sql.Open("mysql", "username:password@tcp(localhost:3306)/gameap")
+	user := os.Getenv("MYSQL_USER")
+	password := os.Getenv("MYSQL_PASSWORD")
+	host := os.Getenv("MYSQL_HOST")
+	port := os.Getenv("MYSQL_PORT")
+	database := os.Getenv("MYSQL_DATABASE")
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, database)
+
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		panic(err.Error())
 	}
