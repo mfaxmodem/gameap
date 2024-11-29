@@ -5,7 +5,13 @@
 ##User use-case
 ###Register
 
+
+docker exec -it mysql_container /bin/bash
+
+
 #CREATE USER 'gameapp'@'%' IDENTIFIED BY 'your_password';
 
 #GRANT ALL PRIVILEGES ON *.* TO 'gameapp'@'%' WITH GRANT OPTION;
 #FLUSH PRIVILEGES;
+systemctl start docker
+systemctl enable docker
