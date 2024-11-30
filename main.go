@@ -14,7 +14,9 @@ import (
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health-heck", healthCheckHandler)
-	mux.HandleFunc("/user/register", userRegisterHandler)
+	mux.HandleFunc("/users/register", userRegisterHandler)
+	mux.HandleFunc("/users/login", userLoginHandler)
+
 	log.Printf("Server is listening on :8080...")
 	server := http.Server{Addr: ":8080", Handler: mux}
 	log.Fatal(server.ListenAndServe())
@@ -55,4 +57,40 @@ func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writer.Write([]byte(`{"message": "User registered successfully"}`))
+}
+
+func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		fmt.Fprintf(writer, "Only POST method is allowed")
+	}
+
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		writer.Write([]byte(
+			fmt.Sprintf(`{"error":"%s"}`, err.Error()),
+		))
+	}
+
+	var lReq userservice.LoginRequest
+	err = json.Unmarshal(data, &lReq)
+	if err != nil {
+		writer.Write([]byte(
+			fmt.Sprintf(`{"error":"%s"}`, err.Error()),
+		))
+		return
+	}
+
+	mysqlRepo := mysql.New()
+	userSvc := userservice.New(mysqlRepo)
+
+	_, err = userSvc.Login(lReq)
+	if err != nil {
+		writer.Write([]byte(
+			fmt.Sprintf(`{"error":"%s"}`, err.Error()),
+		))
+		return
+	}
+
+	// TODO: Implement login logic
+	writer.Write([]byte(`{"message": "User logged in successfully"}`))
 }

@@ -1,17 +1,17 @@
 package userservice
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/mfaxmodem/gameap/entity"
 	"github.com/mfaxmodem/gameap/pkg/phonenumber"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Repository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Register(u entity.User) (entity.User, error)
+	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
 }
 
 type Service struct {
@@ -60,14 +60,20 @@ func (s Service) Register(reg RegisterRequest) (RegisterResponse, error) {
 		return RegisterResponse{}, fmt.Errorf("length password should be greater than 8")
 	}
 
-	//TODO: Change password to bycrypt
+	//TODO - Change password to bycrypt
+	pass, err := bcrypt.GenerateFromPassword([]byte(reg.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return RegisterResponse{}, fmt.Errorf("failed to hash password")
+	}
+
+	// create new user in storage
 
 	// create new user in storage
 	user := entity.User{
 		ID:          0,
 		PhoneNumber: reg.PhoneNumber,
 		Name:        reg.Name,
-		Password:    getMD5Hash(reg.Password),
+		Password:    string(pass),
 	}
 
 	createUser, err := s.repo.Register(user)
@@ -81,18 +87,29 @@ func (s Service) Register(reg RegisterRequest) (RegisterResponse, error) {
 }
 
 type LoginRequest struct {
-	PhoneNumber string
-	Password    string
+	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
 }
 
 type LoginResponse struct {
 }
 
 func (s Service) Login(reg LoginRequest) (LoginResponse, error) {
-	panic("")
-}
+	// get user from storage
+	user, isExists, err := s.repo.GetUserByPhoneNumber(reg.PhoneNumber)
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("failed to get user")
+	}
+	if !isExists {
+		return LoginResponse{}, fmt.Errorf("user not found")
+	}
 
-func getMD5Hash(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
+	// compare password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(reg.Password))
+	if err != nil {
+		return LoginResponse{}, fmt.Errorf("invalid password")
+	}
+
+	// return success
+	return LoginResponse{}, nil
 }
