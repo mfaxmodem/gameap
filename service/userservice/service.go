@@ -104,7 +104,7 @@ func (s Service) Login(reg LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, fmt.Errorf("invalid password")
 	}
 
-	privateKeyPath := "keys/private-key.pem" // مسیر صحیح را مشخص کنید
+	privateKeyPath := "keys/private-key.pem"
 	privateKey, err := loadPrivateKey(privateKeyPath)
 	if err != nil {
 		return LoginResponse{}, fmt.Errorf("failed to load private key: %v", err)
