@@ -25,8 +25,6 @@ func (d *MySQLDB) Register(u entity.User) (entity.User, error) {
 	if err != nil {
 		return entity.User{}, fmt.Errorf("can't execute insert query: %w", err)
 	}
-
-	//error always nil
 	id, _ := res.LastInsertId()
 	u.ID = uint(id)
 	return u, nil

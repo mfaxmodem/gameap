@@ -22,7 +22,7 @@ type Repository interface {
 }
 
 type Service struct {
-	signKey string
+	signKey *rsa.PrivateKey
 	repo    Repository
 }
 
@@ -36,8 +36,11 @@ type RegisterResponse struct {
 	User entity.User
 }
 
-func New(repo Repository, signKey string) Service {
-	return Service{repo: repo, signKey: signKey}
+func New(repo Repository, privateKey *rsa.PrivateKey) Service {
+	return Service{
+		repo:    repo,
+		signKey: privateKey,
+	}
 }
 
 func (s Service) Register(reg RegisterRequest) (RegisterResponse, error) {
@@ -105,7 +108,7 @@ func (s Service) Login(reg LoginRequest) (LoginResponse, error) {
 	}
 
 	privateKeyPath := "keys/private-key.pem"
-	privateKey, err := loadPrivateKey(privateKeyPath)
+	privateKey, err := LoadPrivateKey(privateKeyPath)
 	if err != nil {
 		return LoginResponse{}, fmt.Errorf("failed to load private key: %v", err)
 	}
@@ -137,7 +140,7 @@ type Claims struct {
 	UserID uint `json:"user_id"`
 }
 
-func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
+func LoadPrivateKey(path string) (*rsa.PrivateKey, error) {
 	keyData, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -159,6 +162,30 @@ func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
 	}
 
 	return rsaPrivateKey, nil
+}
+
+func LoadPublicKey(path string) (*rsa.PublicKey, error) {
+	keyData, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(keyData)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, fmt.Errorf("failed to decode PEM block containing public key")
+	}
+
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	rsaPublicKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("not an RSA public key")
+	}
+
+	return rsaPublicKey, nil
 }
 
 func createToken(userID uint, privateKey *rsa.PrivateKey) (string, error) {
