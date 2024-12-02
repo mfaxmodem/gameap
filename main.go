@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,26 @@ import (
 	"github.com/mfaxmodem/gameap/repository/mysql"
 	"github.com/mfaxmodem/gameap/service/userservice"
 )
+
+var (
+	privateKey *rsa.PrivateKey
+	publicKey  *rsa.PublicKey
+)
+
+func init() {
+	var err error
+	privateKey, err = userservice.LoadPrivateKey("keys/private-key.pem")
+	if err != nil {
+		log.Printf("Error loading private key: %v", err)
+		privateKey = nil
+	}
+
+	publicKey, err = userservice.LoadPublicKey("keys/public-key.pem")
+	if err != nil {
+		log.Printf("Error loading public key: %v", err)
+		publicKey = nil
+	}
+}
 
 func main() {
 
@@ -31,18 +52,6 @@ func healthCheckHandler(writer http.ResponseWriter, req *http.Request) {
 }
 
 func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
-
-	// بارگیری کلید خصوصی
-	privateKeyPath := "keys/private-key.pem"
-	privateKey, err := userservice.LoadPrivateKey(privateKeyPath)
-	if err != nil {
-		log.Fatalf("failed to load private key: %v", err)
-	}
-	if req.Method != http.MethodPost {
-		writer.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(writer, "Only POST method is allowed")
-		return
-	}
 
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -74,17 +83,6 @@ func userRegisterHandler(writer http.ResponseWriter, req *http.Request) {
 }
 
 func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
-	// بارگیری کلید خصوصی
-	privateKeyPath := "keys/private-key.pem"
-	privateKey, err := userservice.LoadPrivateKey(privateKeyPath)
-	if err != nil {
-		log.Fatalf("failed to load private key: %v", err)
-	}
-	if req.Method != http.MethodPost {
-		http.Error(writer, "Only POST method is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var lReq userservice.LoginRequest
 	if err := json.NewDecoder(req.Body).Decode(&lReq); err != nil {
 		http.Error(writer, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
@@ -106,18 +104,6 @@ func userLoginHandler(writer http.ResponseWriter, req *http.Request) {
 }
 
 func userProfileHandler(writer http.ResponseWriter, req *http.Request) {
-	// بارگیری کلید خصوصی
-	privateKeyPath := "keys/private-key.pem"
-	privateKey, err := userservice.LoadPrivateKey(privateKeyPath)
-	if err != nil {
-		log.Fatalf("failed to load private key: %v", err)
-	}
-	if req.Method != http.MethodGet {
-		writer.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(writer, "Only GET method is allowed")
-		return
-	}
-
 	auth := req.Header.Get("Authorization")
 	claims, err := ParsJWT(auth)
 	if err != nil {
@@ -149,13 +135,6 @@ func userProfileHandler(writer http.ResponseWriter, req *http.Request) {
 
 func ParsJWT(tokenStr string) (*userservice.Claims, error) {
 	tokenStr = strings.TrimSpace(strings.Replace(tokenStr, "Bearer ", "", 1))
-
-	publicKeyPath := "keys/public-key.pem"
-	publicKey, err := userservice.LoadPublicKey(publicKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load public key: %v", err)
-	}
-
 	token, err := jwt.ParseWithClaims(tokenStr, &userservice.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
